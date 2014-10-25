@@ -1,0 +1,118 @@
+---
+title: "Getting and Cleaning Data Project"
+output: html_document
+---
+
+###Project background
+One of the most exciting areas in data science now is wearable computing. Companies like Fitbit, Nike, and Jawbone Up are racing to develop the advanced algorithms to attract new users. The goal of this project is to collect and clean a data set. Data used for this project are collected from the accelerometers from the Samsung Galaxy S smartphone:
+
+https://d396qusza40orc.cloudfront.net/getdata%2Fprojectfiles%2FUCI%20HAR%20Dataset.zip 
+
+###List of files in this repo:
+
+* ReadMe.md (this file)
+* Codebook.md (describes the variables, the data and transformations)
+* run_analysis.R (script for performing the analysis)
+
+###Purposes of run_analysis.R 
+
+* Merges the training and the test sets to create one data set.
+* Extracts only the measurements on the mean and standard deviation for each measurement. 
+* Uses descriptive activity names to name the activities in the data set.
+* Appropriately labels the data set with descriptive variable names. 
+* From the data set in step 4, creates a second, independent tidy data set with the average of each variable for each activity and each subject.
+
+The output file is a cleaned up data file called tidy.txt
+
+### run_analysis.R steps
+
+Step 1:
+
+* download Samsung data, UCI HAR Dataset
+* read in training and test files: X_test, Y_test, X_train, Y_train and subject.txt.
+
+        #load training data sets that contain 3 componets: subjects, activity and measures
+        dataX_train <-read.table ("/Desktop/DC_project/UCI\ HAR\ Dataset/train/X_train.txt")
+        names(dataX_train) <- measures
+        dataY_train <-read.table ("/Desktop/DC_project/UCI\ HAR\ Dataset/train/Y_train.txt")
+        names(dataY_train) <- c("activity")
+        subject_train <-read.table ("/Desktop/DC_project/UCI\ HAR\ Dataset/train/subject_train.txt")
+        names(subject_train) <- c("subjects")
+
+        #load test data sets that contain 3 componets: subjects, activity and measures
+        dataX_test <-read.table ("/Desktop/DC_project/UCI\ HAR\ Dataset/test/X_test.txt")
+        names(dataX_test) <- measures
+        dataY_test <-read.table ("/Desktop/DC_project/UCI\ HAR\ Dataset/test/Y_test.txt")
+        names(dataY_test) <- c("activity")
+        subject_test <-read.table ("/Desktop/DC_project/UCI\ HAR\ Dataset/test/subject_test.txt")
+        names(subject_test) <- c("subjects")
+
+* read in feature.txt
+
+        dataFeat <-read.table ("/Desktop/DC_project/UCI\ HAR\ Dataset/features.txt")
+        measures <- as.vector(as.matrix(dataFeat[,2]))
+
+* combine all these file into one data frame with corresponding subject labels, feature labels and activity 
+
+        a<-rbind(dataX_train, dataX_test)
+        b<-rbind(dataY_train, dataY_test)
+        c<-rbind(subject_train, subject_test)
+
+        df <-cbind(c, a, b)
+
+Step 2:
+
+* extract data set with means ("mean()") and standard deviations ("std()"). The measurements with only mean value, ie, meanFreq(), were not included in this exercise. The new data subset includes subjects, activity and mean/std of measurments. 
+
+        measure_indx <- regexpr("*mean\\(\\)*", measures)>0 | regexpr("*std\\(\\)*", measures)>0
+        df_Means_Stds <- cbind(c, a[,measure_indx], b)
+
+Step 3:
+
+* read in activity_labels.txt and replace the y variable with activity levels.
+
+        #load activity label file and create a factor variable 
+        activity_labels <- read.table("/Desktop/DC_project/UCI\ HAR\ Dataset/activity_labels.txt")
+        activity_Levels <- factor(as.vector(as.matrix(b[,1])),labels=activity_labels[,2])
+
+        #replace y-variable with activity_Levels in df and df_Means-Stds 
+        df <- cbind(c, a, activity_Levels)
+        names(df)[length(names(df))] <- "activity"
+
+        df_Means_Stds <- cbind(c, a[,measure_indx], activity_Levels)   
+        names(df_Means_Stds)[length(names(df_Means_Stds))] <- "activity"
+
+Step 4:
+
+* clean up the column names using str_replace_all() and tolower functions  to remove all non-alphanumeric characters and convert to lowercase.
+
+        colnames(df_Means_Stds) <- tolower(str_replace_all(colnames(df_Means_Stds), "([A-Z]{1})", ".\\1"))
+        colnames(df_Means_Stds) <- str_replace_all(colnames(df_Means_Stds), "\\-mean\\(\\)\\-", ".mean")
+        colnames(df_Means_Stds) <- str_replace_all(colnames(df_Means_Stds), "\\-std\\(\\)\\-", ".std") 
+        colnames(df_Means_Stds) <- str_replace_all(colnames(df_Means_Stds), "\\-mean\\(\\)", ".mean")
+        colnames(df_Means_Stds) <- str_replace_all(colnames(df_Means_Stds), "\\-std\\(\\)", ".std") 
+        colnames(df_Means_Stds) <- str_replace_all(colnames(df_Means_Stds), "^t.","timedomain.")
+        colnames(df_Means_Stds) <- str_replace_all(colnames(df_Means_Stds), "^f.","frequencydomain.") 
+
+Step 5:
+
+* create a tidy data frame by finding the mean of measurements per activity per study subject using ddply() function.
+
+        tidy <- ddply(df_Means_Stds, id.vars=c("subjects", "activity"),
+                   .(subjects, activity), numcolwise(mean))
+                   
+Finally
+
+* export the new tidy data set as a text file, tidy.txt. 
+
+        write.csv(tidy, file = "tidy.txt", row.names = FALSE)
+
+* check the tidy data by read in tidy.txt
+        
+        tidy.data <-read.csv("/Desktop/DC_project/tidy.txt")
+        dim(tidy.data)
+        names(tidy.data)
+        head(tidy.data)
+
+
+
