@@ -1,7 +1,3 @@
----
-title: "Getting and Cleaning Data Project"
-output: html_document
----
 
 ###Project background
 One of the most exciting areas in data science now is wearable computing. Companies like Fitbit, Nike, and Jawbone Up are racing to develop the advanced algorithms to attract new users. The goal of this project is to collect and clean a data set. Data used for this project are collected from the accelerometers from the Samsung Galaxy S smartphone:
